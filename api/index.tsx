@@ -2,9 +2,23 @@ import { Button, Frog, TextInput, parseEther } from 'frog'
 import { abi } from './abi.ts'
 import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
+import { neynar, type NeynarVariables } from 'frog/middlewares'
  
- 
-export const app = new Frog()
+type State = {
+  inviteFID: string
+}
+
+export const app = new Frog<{ State: State }>({
+  initialState: {
+    inviteFID: 0
+  }
+})
+  .use(
+    neynar({
+      apiKey: 'NEYNAR_FROG_FM',
+      features: ['interactor', 'cast'],
+    }),
+  )
  
 app.frame('/', (c) => {
   return c.res({
@@ -70,7 +84,24 @@ app.frame('/create-game-menu', (c) => {
   })
 })
 
-app.frame('/create-private-game', (c) => {
+const fetchFID = async (inputText: string | undefined): Promise<string> => {
+  if (inputText) {
+    // Perform the logic to fetch the FID based on the input text
+    // Replace this with your actual implementation
+    const fid = inputText;
+    return fid;
+  }
+  return ''; // Return a default value if inputText is undefined
+};
+
+app.frame('/create-private-game', async (c) => {
+  // const { deriveState, frameData } = c;
+  // const state = await deriveState(async (previousState) => {
+  //   previousState.inviteFID = await fetchFID(frameData?.inputText);
+  //   console.log('Updated state: ', previousState)
+  // });
+  // const { inputText } = frameData
+  // console.log('The input text is: ', inputText)
   return c.res({
     image: (
       <div style={{ color: 'white', display: 'flex', fontSize: 60}}>
@@ -140,7 +171,18 @@ app.frame('/public-set-bet', (c) => {
   })
 })
 
-app.frame('/private-set-bet', (c) => {
+app.frame('/private-set-bet', async (c) => {
+  const { deriveState, frameData } = c;
+  
+  const state = await deriveState(async (previousState) => {
+    if (frameData?.inputText) {
+      previousState.inviteFID = frameData.inputText;
+    }
+    console.log('Updated state:', previousState);
+  });
+
+  console.log('Saved FID: ', frameData?.inputText);
+
   return c.res({
     image: (
       <div style={{ color: 'white', display: 'flex', fontSize: 60}}>
